@@ -1,6 +1,6 @@
 import pytest
 from pydantic import ValidationError
-from app.api.transactions.request_transaction import TransactionRequest
+from api.transactions.request_transaction import TransactionRequest
 
 def test_valid_transaction_credit():
     data = {
