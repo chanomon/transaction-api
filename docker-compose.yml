@@ -11,6 +11,8 @@ services:
       PROVIDER_URL: ${PROVIDER_URL}
     volumes:
       - ./app:/app        ##mounts the local code
+      - ./tests:/app/tests     # <---for testing 
+      - ./pytest.ini:/app/pytest.ini   # <--- Mount config file for test
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
   postgres: ##another service gonna be the database for persistance
