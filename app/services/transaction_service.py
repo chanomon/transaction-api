@@ -3,6 +3,8 @@ from repositories.transaction_repository import TransactionRepository
 from clients.provider_client import ProviderClient
 from sqlalchemy.orm import Session
 import httpx
+import logging
+
 
 class TransactionService:
     def __init__(self, db: Session):
@@ -48,9 +50,10 @@ class TransactionService:
             
         except (httpx.TimeoutException, httpx.ConnectError, httpx.HTTPStatusError) as e:
             ## If providers fails, then produce REJECTED with code and describing error
+            logging.warning(f"Provider call failed: {e}")
             error_response = {
                 "code": "PROVIDER_UNAVAILABLE",
-                "message": f"Error al contactar al proveedor: {str(e)}"
+                "message": f"Error al contactar al proveedor"#removed the following as it was exposing provider info (URL): {str(e)}"
             }
             updated_tx = self.repo.update_after_provider(
                 tx_id=new_tx.id,
