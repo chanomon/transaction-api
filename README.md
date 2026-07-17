@@ -65,6 +65,13 @@ El payload se compara como un valor literal de `account_id` (que no existe), sin
 
 Requisitos: Docker y Docker Compose.
 
+**1. Configurar variables de entorno.** El proyecto necesita un archivo `.env` en la raíz (no versionado en git). Copia el template y ajusta los valores:
+```bash
+cp .env.example .env
+```
+Genera un valor para `API_KEY` (por ejemplo con `openssl rand -hex 32`) y pégalo en `.env` — sin este archivo, la app falla al arrancar porque `API_KEY` no tiene valor por default, y `docker-compose.yml` tampoco puede resolver `POSTGRES_USER`/`DATABASE_URL`/etc.
+
+**2. Levantar los servicios:**
 ```bash
 docker compose up -d --build
 ```
