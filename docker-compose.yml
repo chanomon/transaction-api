@@ -9,6 +9,7 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL}
       PROVIDER_URL: ${PROVIDER_URL}
+      API_KEY: ${API_KEY}
     volumes:
       - ./app:/app        ##mounts the local code
       - ./tests:/app/tests     # <---for testing 

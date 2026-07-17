@@ -10,6 +10,7 @@ from typing import Optional
 from services.transaction_service import TransactionService
 from models.schemas import TransactionRequest
 from models.schemas import TransactionResponse
+from core.security import verify_api_key
 ##Im not using this classes , they went to schemas.py
 # --- 1. Definne the models of data with Pydantic ---
 
@@ -49,7 +50,8 @@ from models.schemas import TransactionResponse
 ##config the routes
 router = APIRouter( ##FastAPI organizes the routes in separeted modules
     prefix="/transactions",
-    tags=["Transactions"]
+    tags=["Transactions"],
+    dependencies=[Depends(verify_api_key)]#this line is to hook dependency in router level so now I dont need to repeat in POST and GET
 )
 
 ##Enpoint POST /transactions 

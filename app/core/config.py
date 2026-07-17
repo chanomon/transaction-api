@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     PROVIDER_URL: str = "http://wiremock:8080"
     PROVIDER_TIMEOUT: int = 5  # seconds If provider does not respond, cut conection and response of timeout 
     PROVIDER_RETRIES: int = 3  # Times the app retries if something goes wrong with 
+    API_KEY: str
     
     class Config:
         env_file = ".env"
