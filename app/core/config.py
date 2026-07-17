@@ -3,7 +3,7 @@ from typing import Optional
 
 class Settings(BaseSettings):
     # Base de datos
-    DATABASE_URL: str = "postgresql+asyncpg://user:pass@postgres:5432/transaction_db"
+    DATABASE_URL: str = "postgresql+psycopg2://user:pass@postgres:5432/transaction_db"
     
     # Proveedor externo
     PROVIDER_URL: str = "http://wiremock:8080"

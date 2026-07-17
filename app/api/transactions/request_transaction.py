@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, status, Query, HTTPException
+from sqlalchemy.orm import Session
 from core.database import get_db
 #from pydantic import BaseModel, Field, field_validator, model_validator
-#from typing import Optional
+from typing import Optional
+
 #from datetime import datetime, timezone
 #from typing import Literal
 #import uuid
@@ -53,12 +54,12 @@ router = APIRouter( ##FastAPI organizes the routes in separeted modules
 
 ##Enpoint POST /transactions 
 @router.post("/", response_model=TransactionResponse, status_code=status.HTTP_201_CREATED)
-async def create_transaction(                ## defined as asyncronous func, reads body of POST and parse as JSON and validetes with TransactionRequest model
+def create_transaction(                ## defined as asyncronous func, reads body of POST and parse as JSON and validetes with TransactionRequest model
         request: TransactionRequest,
-        db: AsyncSession = Depends(get_db)
+        db: Session = Depends(get_db)
 ):
     service = TransactionService(db)
-    result = await service.process_transaction(request)
+    result = service.process_transaction(request)
     ## The result is already a dict with expected structure
     return result
 
@@ -81,3 +82,38 @@ async def create_transaction(                ## defined as asyncronous func, rea
 #    
 #    # En el futuro, aquí se llamaría al proveedor externo y se guardaría en BD
 #    return response
+
+## Endpoint GET /transactions
+@router.get("/", response_model=list[TransactionResponse])
+def list_transactions(
+    accountId: Optional[str] = Query(None, description="Filtrar por ID de cuenta"),
+    status: Optional[str] = Query(None, description="Filtrar por estado (APPROVED/REJECTED)"),
+    type: Optional[str] = Query(None, description="Filtrar por tipo (CREDIT/DEBIT)"),
+    page: int = Query(1, ge=1, description="Número de página (empieza en 1)"),
+    limit: int = Query(20, ge=1, le=100, description="Resultados por página"),
+    db: Session = Depends(get_db)
+):
+    ## Security validations, avoids not expected values.
+    if status and status not in ["APPROVED", "REJECTED"]:
+        HTTPException(status_code=400, detail="status debe ser APPROVED o REJECTED")
+    if type and type not in ["CREDIT", "DEBIT"]:
+        HTTPException(status_code=400, detail="type debe ser CREDIT o DEBIT")
+    service = TransactionService(db)
+    ## Build dict with not None filters (more simple than the previous one)
+    filters = {        
+        "accountId": accountId,
+        "status": status,
+        "type": type
+    }
+    ##Remove None filters so the cannot reach query
+    filters = {k: v for k, v in filters.items() if v is not None}
+    #if accountId is not None:
+    #    filters["account_id"] = accountId
+    #if status is not None:
+    #    filters["status"] = status
+    #if type is not None:
+    #    filters["type"] = type
+    
+    ## Passing page/limit so results come back paginated instead of the whole table
+    transactions = service.get_transactions(filters, page=page, limit=limit)
+    return transactions

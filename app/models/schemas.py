@@ -13,7 +13,7 @@ import uuid
 class TransactionRequest(BaseModel):
     accountId: str = Field(..., example="acc-123456")
     type: str = Field(..., example="CREDIT")
-    amount: float = Field(..., ge=1.0, example=1500.00) #ge=1.0 means that the amount should be >=1.0  as intended in bussiness rules
+    amount: float = Field(..., gt=1.0, example=1500.00) ##gt=1.0 the amounts shall be >1.00
     currency: Literal["MXN"] = Field(..., example="MXN")# Changed to this so now I dont need field_validator for currency#str = Field(..., min_length=3, max_length=3, example="MXN")
     description: Optional[str] = Field(None, example="Transferencia recibida")
 
@@ -45,15 +45,24 @@ class TransactionRequest(BaseModel):
 
 class TransactionResponse(BaseModel):
     id: str
-    accountId: str
+    accountId: str = Field(..., validation_alias="account_id")
     type: str
     amount: float
     currency: str
     description: Optional[str] = None
     status: str
-    providerTransactionId: Optional[str] = None
-    balanceAfter: Optional[float] = None
-    createdAt: datetime
-    executedAt: Optional[datetime] = None
-    errorCode: Optional[str] = None
-    errorMessage: Optional[str] = None
+    providerTransactionId: Optional[str] = Field(None, validation_alias="provider_transaction_id")
+    balanceAfter: Optional[float] = Field(None, validation_alias="balance_after")
+    createdAt: datetime = Field(None, validation_alias="created_at")
+    executedAt: Optional[datetime] = Field(None, validation_alias="executed_at")
+    errorCode: Optional[str] = Field(None, validation_alias="error_code")
+    errorMessage: Optional[str] = Field(None, validation_alias="error_message")
+## validation_alias (not alias) lets us read snake_case attributes from the ORM object
+## while still serializing the response using the camelCase field names the spec requires.
+    model_config = {"populate_by_name": True}
+
+    @field_validator("id", mode="before")
+    @classmethod
+    def stringify_id(cls, v):
+        ## the ORM returns a uuid.UUID object; the API contract wants a plain string
+        return str(v)

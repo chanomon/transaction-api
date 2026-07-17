@@ -4,8 +4,10 @@
     "url": "/provider/v1/execute",
     "bodyPatterns": [
       {
-        "matchesJsonPath": "$.accountId",
-        "equalToJson": "acc-fail"
+        "matchesJsonPath": {
+          "expression": "$.accountId",
+          "equalTo": "acc-fail"
+        }
       }
     ]
   },

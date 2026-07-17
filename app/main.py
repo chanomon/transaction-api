@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from api.transactions.request_transaction import router
 from core.database import init_db  # <--- Importa la función
 
+
 # Crear la aplicación FastAPI
 app = FastAPI(
     title="Transaction API",
@@ -10,10 +11,15 @@ app = FastAPI(
 )
 ## Event that executes when app starts
 @app.on_event("startup")
-async def startup():
-    ##creates tables defined in db_models if they dont exist
-    await init_db()
-    print("✅ DB initialiazed and tables created.")
+def startup():
+    init_db()
+    print("✅ DB initialized and tables created.")
+#@app.on_event("startup")
+#async def startup():
+##creates tables defined in db_models if they dont exist
+#    print("🔄 Evento startup ejecutándose...")
+#    await init_db()
+#    print("✅ DB initialiazed and tables created.")
 
 # Registrar las rutas de transacciones
 app.include_router(router, prefix="/api/v1")

@@ -22,7 +22,7 @@ class Transaction(Base):
     error_code = Column(String(50), nullable=True)
     error_message = Column(String(255), nullable=True)
     
-    #executed_at = Column(DateTime(timezone=True), nullable=True) ##I belive that I dont need this and updated_at 
+    executed_at = Column(DateTime(timezone=True), nullable=True) ##I belive that I dont need this and updated_at 
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=text("CURRENT_TIMESTAMP"))
     #updated_at = Column(DateTime(timezone=True), nullable=False, server_default=text("CURRENT_TIMESTAMP"), onupdate=text("CURRENT_TIMESTAMP"))
 
