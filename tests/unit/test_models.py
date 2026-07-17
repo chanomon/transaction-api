@@ -24,3 +24,23 @@ def test_invalid_debit_limit():
     with pytest.raises(ValidationError) as excinfo:
         TransactionRequest(**data)
     assert "10000.00" in str(excinfo.value)
+
+def test_invalid_minimum_amount():
+    data = {
+        "accountId": "acc-123",
+        "type": "CREDIT",
+        "amount": 1.0, ##minimum amount must be > 1.00, not >=
+        "currency": "MXN"
+    }
+    with pytest.raises(ValidationError):
+        TransactionRequest(**data)
+
+def test_invalid_currency():
+    data = {
+        "accountId": "acc-123",
+        "type": "CREDIT",
+        "amount": 100.0,
+        "currency": "USD" ##only MXN is accepted
+    }
+    with pytest.raises(ValidationError):
+        TransactionRequest(**data)
