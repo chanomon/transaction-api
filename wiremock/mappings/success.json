@@ -1,15 +1,8 @@
 {
+  "priority": 10,
   "request": {
     "method": "POST",
-    "url": "/provider/v1/execute",
-    "bodyPatterns": [
-      {
-        "matchesJsonPath": {
-          "expression": "$.accountId",
-          "equalTo": "acc-success"
-        }
-      }
-    ]
+    "url": "/provider/v1/execute"
   },
   "response": {
     "status": 200,

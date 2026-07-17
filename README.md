@@ -127,11 +127,10 @@ curl -s "http://localhost:8000/api/v1/transactions/?type=CREDIT" -H "X-API-Key: 
 curl -s "http://localhost:8000/api/v1/transactions/?accountId=acc-success&status=APPROVED&type=CREDIT&page=1&limit=5" -H "X-API-Key: <tu-api-key>" | jq -c '.[]'
 ```
 
-El mock del proveedor (`wiremock/mappings/`) responde distinto según el `accountId` enviado, para poder probar los distintos escenarios sin tocar código:
-- `acc-success` → aprobado (`APPROVED`)
+El mock del proveedor (`wiremock/mappings/`) responde distinto según el `accountId` enviado, para poder probar los distintos escenarios sin tocar código. Los dos casos especiales tienen prioridad; **cualquier otro `accountId` (incluyendo `acc-success`, que ya no es un caso especial) cae en la respuesta genérica de éxito**:
 - `acc-fail` → fondos insuficientes (`REJECTED` / `INSUFFICIENT_FUNDS`)
 - `acc-500` → error 500 del proveedor (la app lo captura y persiste como `REJECTED` / `PROVIDER_UNAVAILABLE`, sin caerse)
-- cualquier otro `accountId` → respuesta genérica de éxito
+- cualquier otro `accountId` → aprobado (`APPROVED`), respuesta genérica de éxito
 
 ## Reglas de negocio implementadas
 
