@@ -4,3 +4,7 @@ __pycache__/
 .venv
 *.log
 .DS_Store
+app/pytest.ini
+App_backup/
+documentacion.txt
+

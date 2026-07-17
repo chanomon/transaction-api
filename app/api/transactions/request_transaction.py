@@ -95,9 +95,9 @@ def list_transactions(
 ):
     ## Security validations, avoids not expected values.
     if status and status not in ["APPROVED", "REJECTED"]:
-        HTTPException(status_code=400, detail="status debe ser APPROVED o REJECTED")
+        raise HTTPException(status_code=400, detail="status debe ser APPROVED o REJECTED")
     if type and type not in ["CREDIT", "DEBIT"]:
-        HTTPException(status_code=400, detail="type debe ser CREDIT o DEBIT")
+        raise HTTPException(status_code=400, detail="type debe ser CREDIT o DEBIT")
     service = TransactionService(db)
     ## Build dict with not None filters (more simple than the previous one)
     filters = {        
