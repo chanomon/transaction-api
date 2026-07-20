@@ -16,24 +16,41 @@ El servicio no administra saldos, solo valida las reglas de negocio de entrada, 
 ## Estructura del proyecto
 
 ```
-app/
-  api/transactions/       # Endpoints (capa HTTP)
-  services/                # Lógica de orquestación (reglas de negocio + llamada al proveedor)
-  repositories/             # Acceso a datos (SQLAlchemy)
-  clients/                  # Cliente HTTP hacia el proveedor externo
-  models/
-    schemas.py               # Modelos Pydantic (request/response)
-    db_models.py              # Modelo ORM (tabla transactions)
-  core/
-    config.py                 # Configuración (variables de entorno)
-    database.py                # Engine, sesión y creación de tablas
-tests/
-  unit/                     # Tests unitarios (validaciones de negocio)
-  integration/               # Tests de integración (ver nota en "Testing")
-wiremock/mappings/         # Escenarios mockeados del proveedor externo
-docker-compose.yml
-Dockerfile
-documentacion.txt          # Bitácora de bugs encontrados y solucionados
+transaction-api
+├── app                                    # Código fuente de la API
+│   ├── api
+│   │   └── transactions
+│   │       └── request_transaction.py     # Endpoints HTTP (POST/GET /transactions), capa de entrada
+│   ├── clients
+│   │   └── provider_client.py             # Cliente HTTP hacia el proveedor externo (WireMock), con retries/backoff, manda post con los codigos 5xx o 4xx o 2xx segun sea el caso
+│   ├── core
+│   │   ├── config.py                      # Settings (Pydantic) — variables de entorno de la app
+│   │   ├── database.py                    # Engine, sesión de SQLAlchemy y creación de tablas
+│   │   └── security.py                    # Verificación de API key (dependencia de FastAPI)
+│   ├── main.py                            # Punto de entrada de FastAPI, monta routers y /health
+│   ├── models
+│   │   ├── db_models.py                   # Modelo ORM (Object Relational Mapingtabla ) Este script te dice como se va a guardar la info en el DB de Postgres
+│   │   └── schemas.py                     # Modelos Pydantic (request/response de la API)
+│   ├── repositories
+│   │   └── transaction_repository.py      # Acceso a datos: hace queries a la DB vía SQLAlchemy
+│   └── services
+│       └── transaction_service.py         # Lógica de orquestación: valida, llama al proveedor, persiste los datos
+├── docker-compose.yml                     # Orquesta los 3 servicios: app, postgres, wiremock
+├── Dockerfile                             # Imagen de la app
+├── pytest.ini                             # Configuración de pytest
+├── requirements-dev.txt                   # dependencias solo para tests
+├── requirements.txt                       # Dependencias de produccionde la app
+├── tests
+│   ├── integration
+│   │   ├── conftest.py                    # Fixtures compartidos para tests de integración
+│   │   └── test_transaction_api.py        # Tests contra los endpoits reales (requiere docker compose)
+│   └── unit
+│       └── test_models.py                 # Tests de validaciones (sin tomar en cuenta DB ni Wiremock)
+└── wiremock
+    └── mappings                           # Escenarios mockeados del proveedor externo
+        ├── error-500.json                 # accountId=acc-500 → el proveedor responde 500
+        ├── insufficient-funds.json        # accountId=acc-fail → (ejemplo de fondos insuficientes)
+        └── success.json                   # catch-all → aprobado
 ```
 
 La separación en capas (API → Service → Repository/Client) busca que la lógica de negocio no dependa directamente de SQLAlchemy ni de `httpx`: el `TransactionService` no sabe si la persistencia es Postgres o el proveedor es WireMock, solo conoce las interfaces de `TransactionRepository` y `ProviderClient`.
