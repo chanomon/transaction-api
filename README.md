@@ -116,6 +116,10 @@ Y usar `-H "X-API-Key: $API_KEY"` en los ejemplos de abajo en vez de `-H "X-API-
 
 ### Probar los endpoints
 
+
+### IMPORTANTE 
+Dale tiempo para que arranque la base de datos(1 minuto??), a veces por intentar un request con prisa, no hay respuesta porque el DB no ha iniciado.
+
 **Health check (no requiere `X-API-Key`):**
 ```bash
 curl http://localhost:8000/health -w "\nHTTP %{http_code}\n"
