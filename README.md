@@ -134,6 +134,40 @@ El mock del proveedor (`wiremock/mappings/`) responde distinto según el `accoun
 
 **Proveedor totalmente inalcanzable (contenedor `wiremock` caído, timeout o conexión rechazada):** este caso se distingue de los dos anteriores. En `acc-fail`/`acc-500` el proveedor sí respondió (con un rechazo de negocio o con su propio error), así que hay una transacción real que persistir como `201 Created` + `REJECTED`. Si el proveedor nunca responde, no hubo ninguna evaluación de la transacción, así que la API no la reporta como si el proveedor la hubiera rechazado: persiste el intento como `REJECTED` / `PROVIDER_UNREACHABLE` para no perder rastro de auditoría, pero responde `503 Service Unavailable` en vez de `201`, dejando claro que la petición no pudo completarse por una falla de infraestructura, no por una decisión de negocio.
 
+Ejemplo de `201` + `REJECTED` (el proveedor sí respondió, con su propio error):
+```bash
+curl -X POST http://localhost:8000/api/v1/transactions/ \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: <tu-api-key>" \
+  -d '{
+    "accountId": "acc-500",
+    "type": "CREDIT",
+    "amount": 1500.00,
+    "currency": "MXN",
+    "description": "Transferencia recibida"
+  }' \
+  -w "\nHTTP %{http_code}\n"
+```
+
+Ejemplo de `503` (proveedor totalmente inalcanzable, primero se tumba `wiremock`):
+```bash
+docker compose stop wiremock
+
+curl -X POST http://localhost:8000/api/v1/transactions/ \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: <tu-api-key>" \
+  -d '{
+    "accountId": "acc-123456",
+    "type": "CREDIT",
+    "amount": 1500.00,
+    "currency": "MXN",
+    "description": "Transferencia recibida"
+  }' \
+  -w "\nHTTP %{http_code}\n"
+
+docker compose start wiremock
+```
+
 ## Reglas de negocio implementadas
 
 Validadas en el servicio **antes** de llamar al proveedor externo (`app/models/schemas.py` y `app/services/transaction_service.py`):
