@@ -8,8 +8,9 @@ from typing import Literal
 import uuid
 ## request_transaction.py will need this schema
 
+## Validates what enters and defines what exits
 
-
+## Validates the body of the POST /transactions before it enters the bussiness logic.
 class TransactionRequest(BaseModel):
     accountId: str = Field(..., example="acc-123456")
     type: str = Field(..., example="CREDIT")
@@ -42,7 +43,7 @@ class TransactionRequest(BaseModel):
 #    status: str = "PENDING"
 #    createdAt: str
 
-
+## Defines how it gonna be the responseto the client, uses alias for the converssion Postgres-Python
 class TransactionResponse(BaseModel):
     id: str
     accountId: str = Field(..., validation_alias="account_id")

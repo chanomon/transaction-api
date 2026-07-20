@@ -3,10 +3,10 @@ from typing import Optional
 
 class Settings(BaseSettings):
     # Base de datos
-    DATABASE_URL: str = "postgresql+psycopg2://user:pass@postgres:5432/transaction_db"
+    DATABASE_URL: str 
     
     # Proveedor externo
-    PROVIDER_URL: str = "http://wiremock:8080"
+    PROVIDER_URL: str 
     PROVIDER_TIMEOUT: int = 5  # seconds If provider does not respond, cut conection and response of timeout 
     PROVIDER_RETRIES: int = 3  # Times the app retries if something goes wrong with 
     API_KEY: str

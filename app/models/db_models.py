@@ -3,7 +3,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 import uuid
-
+##this script defines how the info is gonna be saved in the database of Postgres
 Base = declarative_base()
 
 class Transaction(Base):
