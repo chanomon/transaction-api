@@ -108,6 +108,11 @@ Esto levanta 3 servicios:
 
 Las tablas se crean automáticamente al arrancar la app (no se usan migraciones de Alembic por simplicidad; para un entorno productivo real se recomendaría migrar a Alembic).
 
+**Nota:** en un arranque desde cero (primera vez, o después de `docker compose down -v`), `postgres` puede tardar unos segundos en inicializarse. `app` no espera activamente a que `postgres` esté listo para aceptar conexiones (solo a que su contenedor arranque), así que en ese escenario puede fallar en su primer intento de conexión y quedarse caído. Si el `health check` no responde justo después de levantar todo, revisa con `docker compose ps` que `postgres` ya esté arriba y reinicia `app`:
+```bash
+docker compose restart app
+```
+
 **Tip:** en vez de copiar manualmente el valor de `API_KEY` en cada curl, puedes cargarlo directo desde `.env` a una variable de tu shell:
 ```bash
 export API_KEY=$(grep '^API_KEY=' .env | cut -d '=' -f2)
