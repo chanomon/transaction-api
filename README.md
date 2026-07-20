@@ -61,6 +61,14 @@ curl -G "http://localhost:8000/api/v1/transactions/" \
 ```
 El payload se compara como un valor literal de `account_id` (que no existe), sin ejecutar ningún SQL adicional — la tabla y los datos existentes no se ven afectados.
 
+## Endurecimiento de contenedores
+
+Docker por sí solo no es una capa de seguridad (aislamiento ≠ control de acceso); por defecto un contenedor corre como root y puede exponer más de lo necesario al host. Se aplicaron dos ajustes sobre la configuración inicial:
+
+**1. Usuario no-root con grupo dedicado (`Dockerfile`).** La imagen ya no corre `uvicorn` como `root`. Se crea un grupo `appgroup` con el mismo GID que el grupo del usuario del host dueño del código (para que los permisos de lectura/ejecución del volumen montado (`./app:/app`) apliquen correctamente sin necesidad de compartir un UID específico), y un usuario `appuser` cuyo grupo primario es ese `appgroup`. La app se ejecuta con `USER appuser` a partir de ese punto — si el proceso de la app fuera comprometido, el atacante no obtiene privilegios de root dentro del contenedor.
+
+**2. Puertos internos sin exponer al host (`docker-compose.yml`).** `postgres` (`5432`) y `wiremock` (`8080`) ya no publican su puerto al host: solo son alcanzables dentro de la red interna `transaction-network`, desde el contenedor `app`. Antes, cualquiera con acceso a la máquina podía conectarse directo a Postgres o a WireMock sin pasar por la API ni por el `X-API-Key`, lo cual anulaba cualquier control de acceso a nivel de aplicación. Solo `app` (puerto `8000`) sigue expuesto al host, que es el único punto de entrada que debe existir.
+
 ## Cómo levantar el proyecto
 
 Requisitos: Docker y Docker Compose.
@@ -71,15 +79,32 @@ cp .env.example .env
 ```
 Genera un valor para `API_KEY` (por ejemplo con `openssl rand -hex 32`) y pégalo en `.env` — sin este archivo, la app falla al arrancar porque `API_KEY` no tiene valor por default, y `docker-compose.yml` tampoco puede resolver `POSTGRES_USER`/`DATABASE_URL`/etc.
 
-**2. Levantar los servicios:**
+**2. Ajustar el GID del contenedor al de tu usuario en el host.** El `Dockerfile` crea un usuario no-root (`appuser`) cuyo grupo (`appgroup`) debe tener el mismo GID que el dueño del código en tu máquina, para que el contenedor pueda leer/ejecutar el volumen montado `./app:/app` (ver [Endurecimiento de contenedores](#endurecimiento-de-contenedores)).
+
+Obtén tu GID:
+```bash
+id -g $USER
+```
+Reemplaza el valor en la línea `RUN groupadd -g <GID> appgroup` del `Dockerfile` con ese número (por defecto trae `1000`, que es el GID típico del primer usuario en muchas distros, pero conviene confirmarlo en vez de asumirlo).
+
+Asegúrate también de que `./app` en el host pertenezca a ese mismo grupo:
+```bash
+ls -ld app
+```
+Si el grupo mostrado no coincide con el GID que vas a usar en el `Dockerfile`, ajústalo:
+```bash
+chgrp -R $(id -gn $USER) app
+```
+
+**3. Levantar los servicios:**
 ```bash
 docker compose up -d --build
 ```
 
 Esto levanta 3 servicios:
 - `app` — la API, en `http://localhost:8000` (docs interactivas en `http://localhost:8000/docs`)
-- `postgres` — base de datos, puerto `5432`
-- `wiremock` — proveedor externo mockeado, puerto `8080`
+- `postgres` — base de datos (solo accesible dentro de la red interna de Docker, no expuesta al host)
+- `wiremock` — proveedor externo mockeado (solo accesible dentro de la red interna de Docker, no expuesto al host)
 
 Las tablas se crean automáticamente al arrancar la app (no se usan migraciones de Alembic por simplicidad; para un entorno productivo real se recomendaría migrar a Alembic).
 

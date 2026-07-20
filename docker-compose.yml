@@ -24,8 +24,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - "5432:5432"
+    ##ports:
+    ##  - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -33,8 +33,8 @@ services:
 
   wiremock: ##The other service gonna be wiremock
     image: wiremock/wiremock:latest
-    ports:
-      - "8080:8080"
+    ##ports:
+    ##  - "8080:8080"
     volumes:
       - ./wiremock/mappings:/home/wiremock/mappings
     command: ["--global-response-templating", "--port", "8080"]
