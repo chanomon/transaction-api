@@ -11,42 +11,6 @@ from services.transaction_service import TransactionService, ProviderUnreachable
 from models.schemas import TransactionRequest
 from models.schemas import TransactionResponse
 from core.security import verify_api_key
-##Im not using this classes , they went to schemas.py
-# --- 1. Definne the models of data with Pydantic ---
-
-#class TransactionRequest(BaseModel):
-#    accountId: str = Field(..., example="acc-123456")
-#    type: str = Field(..., example="CREDIT")
-#    amount: float = Field(..., ge=1.0, example=1500.00) #ge=1.0 means that the amount should be >=1.0  as intended in bussiness rules
-#    currency: Literal["MXN"] = Field(..., example="MXN")# Changed to this so now I dont need field_validator for currency#str = Field(..., min_length=3, max_length=3, example="MXN")
-#    description: Optional[str] = Field(None, example="Transferencia recibida")
-#
-#    # Validation for the 'type' CREDIT o DEBIT
-#    @field_validator("type")
-#    @classmethod
-#    def validate_type(cls, v: str) -> str: 
-#        allowed = ["CREDIT", "DEBIT"]
-#        if v not in allowed:
-#            raise ValueError(f"Tipo debe ser uno de: {allowed}")
-#        return v
-#
-#    # Once I validated the values alone now I validate the relations between them
-#        # The debits amounts shall not surpass 10000.00
-#    @model_validator(mode="after")
-#    def validate_debit_limit(self) -> "TransactionRequest":
-#        if self.type == "DEBIT" and self.amount > 10000.00:
-#            raise ValueError("El monto máximo para débitos es 10000.00 MXN.")
-#        return self
-####IM NOT GONNA USE THIS HERE ANYMORE; THIS IS GOING TO schemas.py
-#class TransactionResponse(BaseModel):
-#    transactionId: str
-#    accountId: str
-#    type: str
-#    amount: float
-#    currency: str
-#    status: str = "PENDING"
-#    createdAt: str
-
 ##config the routes
 router = APIRouter( ##FastAPI organizes the routes in separeted modules
     prefix="/transactions",
@@ -71,25 +35,6 @@ def create_transaction(                ## defined as asyncronous func, reads bod
     ## The result is already a dict with expected structure
     return result
 
-
-######## IM NOT USING THIS ANYMORE, THIS WAS TO CREATE THE RESPONSE IN THE ENDPOINT ITSELF AS TEST
-#    # Generates unique ID for transaction
-#    transaction_id = f"txn-{uuid.uuid4().hex[:8]}"
-#    
-#    # Obtener fecha actual en UTC (formato ISO 8601)
-#    created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ") ##Format from  response
-#    # Construir la respuesta
-#    response = TransactionResponse(
-#        transactionId=transaction_id,
-#        accountId=request.accountId,
-#        type=request.type,
-#            amount=request.amount,
-#        currency=request.currency,
-#        createdAt=created_at
-#    )
-#    
-#    # En el futuro, aquí se llamaría al proveedor externo y se guardaría en BD
-#    return response
 
 ## Endpoint GET /transactions
 @router.get("/", response_model=list[TransactionResponse])

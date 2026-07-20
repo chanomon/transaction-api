@@ -2,7 +2,7 @@ import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from core.config import settings
 from models.schemas import TransactionRequest
-##Sets the provider client, in this case WireMock
+#Sets the provider client, in this case WireMock
 class ProviderClient:
     def __init__(self):
         self.base_url = settings.PROVIDER_URL
@@ -17,6 +17,7 @@ class ProviderClient:
     def execute(self, request: TransactionRequest) -> dict:
         ##sends the transaction to Wirmock and return parsed response
         ##Launch expection if fails after retries or if provider returns error 5xx (Internal server error)
+        ## Otherwise returns succes with 2xx code
         url = f"{self.base_url}/provider/v1/execute"
         payload = request.dict(exclude_none=True)
 
