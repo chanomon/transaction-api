@@ -132,6 +132,8 @@ El mock del proveedor (`wiremock/mappings/`) responde distinto según el `accoun
 - `acc-500` → error 500 del proveedor (la app lo captura y persiste como `REJECTED` / `PROVIDER_UNAVAILABLE`, sin caerse)
 - cualquier otro `accountId` → aprobado (`APPROVED`), respuesta genérica de éxito
 
+**Proveedor totalmente inalcanzable (contenedor `wiremock` caído, timeout o conexión rechazada):** este caso se distingue de los dos anteriores. En `acc-fail`/`acc-500` el proveedor sí respondió (con un rechazo de negocio o con su propio error), así que hay una transacción real que persistir como `201 Created` + `REJECTED`. Si el proveedor nunca responde, no hubo ninguna evaluación de la transacción, así que la API no la reporta como si el proveedor la hubiera rechazado: persiste el intento como `REJECTED` / `PROVIDER_UNREACHABLE` para no perder rastro de auditoría, pero responde `503 Service Unavailable` en vez de `201`, dejando claro que la petición no pudo completarse por una falla de infraestructura, no por una decisión de negocio.
+
 ## Reglas de negocio implementadas
 
 Validadas en el servicio **antes** de llamar al proveedor externo (`app/models/schemas.py` y `app/services/transaction_service.py`):

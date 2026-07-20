@@ -7,7 +7,7 @@ from typing import Optional
 #from datetime import datetime, timezone
 #from typing import Literal
 #import uuid
-from services.transaction_service import TransactionService
+from services.transaction_service import TransactionService, ProviderUnreachableError
 from models.schemas import TransactionRequest
 from models.schemas import TransactionResponse
 from core.security import verify_api_key
@@ -61,7 +61,13 @@ def create_transaction(                ## defined as asyncronous func, reads bod
         db: Session = Depends(get_db)
 ):
     service = TransactionService(db)
-    result = service.process_transaction(request)
+    try:
+        result = service.process_transaction(request)
+    except ProviderUnreachableError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="El proveedor no está disponible, intenta de nuevo más tarde"
+        )
     ## The result is already a dict with expected structure
     return result
 

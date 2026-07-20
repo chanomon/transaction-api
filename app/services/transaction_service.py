@@ -6,6 +6,10 @@ import httpx
 import logging
 
 
+class ProviderUnreachableError(Exception):
+    """El proveedor no respondió (timeout o conexión rechazada), a diferencia de un error explícito del proveedor."""
+
+
 class TransactionService:
     def __init__(self, db: Session):
         self.db = db
@@ -48,12 +52,12 @@ class TransactionService:
                 "errorMessage": updated_tx.error_message
             }
             
-        except (httpx.TimeoutException, httpx.ConnectError, httpx.HTTPStatusError) as e:
-            ## If providers fails, then produce REJECTED with code and describing error
-            logging.warning(f"Provider call failed: {e}")
+        except httpx.HTTPStatusError as e:
+            ## The provider DID respond, just with an error of its own (e.g. acc-500)
+            logging.warning(f"Provider returned an error: {e}")
             error_response = {
                 "code": "PROVIDER_UNAVAILABLE",
-                "message": f"Error al contactar al proveedor"#removed the following as it was exposing provider info (URL): {str(e)}"
+                "message": "El proveedor respondió con un error"
             }
             updated_tx = self.repo.update_after_provider(
                 tx_id=new_tx.id,
@@ -76,6 +80,21 @@ class TransactionService:
                 "errorCode": updated_tx.error_code,
                 "errorMessage": updated_tx.error_message
             }
+
+        except (httpx.TimeoutException, httpx.ConnectError) as e:
+            ## The provider never answered at all, there was no real evaluation of the transaction
+            logging.warning(f"Provider unreachable: {e}")
+            error_response = {
+                "code": "PROVIDER_UNREACHABLE",
+                "message": "No se pudo contactar al proveedor"
+            }
+            self.repo.update_after_provider(
+                tx_id=new_tx.id,
+                provider_response=error_response,
+                is_success=False
+            )
+            ## Let the router translate this into a 503, not a 201
+            raise ProviderUnreachableError() from e
 
 #    async def get_transactions(self, filters: dict) -> list[dict]:
 #        ##Get filtered transactions and converts to dict for response
