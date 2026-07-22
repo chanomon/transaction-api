@@ -55,36 +55,6 @@ transaction-api
 
 La separación en capas (API → Service → Repository/Client) busca que la lógica de negocio no dependa directamente de SQLAlchemy ni de `httpx`: el `TransactionService` no sabe si la persistencia es Postgres o el proveedor es WireMock, solo conoce las interfaces de `TransactionRepository` y `ProviderClient`.
 
-## Autenticación
-
-Todos los endpoints bajo `/api/v1/transactions` (`POST` y `GET`) requieren una API key estática enviada en el header `X-API-Key`. Se implementa como una dependencia de FastAPI (`app/core/security.py`) enganchada a nivel de router, así que no hay forma de llegar a los endpoints de transacciones sin el header correcto: sin key o con una key incorrecta, la API responde `401 Unauthorized`.
-
-El endpoint `GET /health` se deja intencionalmente **sin** autenticación: es el que consultaría un load balancer o un orquestador (healthcheck de Docker, probes de Kubernetes) para saber si el proceso sigue vivo, y esos sistemas no tienen forma de conocer la API key — protegerlo tumbaría el servicio por falsos positivos de "unhealthy".
-
-La comparación de la key contra el valor esperado usa `secrets.compare_digest()` en vez de `==`: es una comparación de tiempo constante, para que un atacante no pueda inferir la key midiendo cuánto tarda la respuesta ante distintos intentos (timing attack). El valor real vive en `.env` (no versionado) y se inyecta a la app vía `docker-compose.yml`.
-
-**Nota de alcance:** esta es una autenticación básica servicio-a-servicio, apropiada para el tamaño de este challenge. En un entorno productivo con múltiples clientes/roles, lo natural sería evolucionar a JWT (rotación de credenciales sin reiniciar el servicio, expiración, scopes por cliente); no se implementó aquí para no sobre-ingenierizar dado el alcance y tiempo disponibles.
-
-### Protección contra SQL injection
-
-Tanto el `POST` como el `GET` construyen sus queries con el lenguaje de expresiones de SQLAlchemy (`select(...).where(Transaction.account_id == filters["accountId"])` en `TransactionRepository.list_transactions`, y asignación de atributos ORM en `create`), nunca con concatenación de strings. Esto hace que cualquier valor de entrada se envíe como parámetro vinculado (bound parameter) a la base de datos, no como texto SQL interpretable.
-
-Se probó explícitamente enviando un payload de inyección como filtro:
-```bash
-curl -G "http://localhost:8000/api/v1/transactions/" \
-  --data-urlencode "accountId=x'; DROP TABLE transactions; --" \
-  -H "X-API-Key: <tu-api-key>" \
-  -w "\nHTTP %{http_code}\n"
-```
-El payload se compara como un valor literal de `account_id` (que no existe), sin ejecutar ningún SQL adicional — la tabla y los datos existentes no se ven afectados.
-
-## Endurecimiento de contenedores
-
-Docker por sí solo no es una capa de seguridad (aislamiento ≠ control de acceso); por defecto un contenedor corre como root y puede exponer más de lo necesario al host. Se aplicaron dos ajustes sobre la configuración inicial:
-
-**1. Usuario no-root con grupo dedicado (`Dockerfile`).** La imagen ya no corre `uvicorn` como `root`. Se crea un grupo `appgroup` con el mismo GID que el grupo del usuario del host dueño del código (para que los permisos de lectura/ejecución del volumen montado (`./app:/app`) apliquen correctamente sin necesidad de compartir un UID específico), y un usuario `appuser` cuyo grupo primario es ese `appgroup`. La app se ejecuta con `USER appuser` a partir de ese punto — si el proceso de la app fuera comprometido, el atacante no obtiene privilegios de root dentro del contenedor.
-
-**2. Puertos internos sin exponer al host (`docker-compose.yml`).** `postgres` (`5432`) y `wiremock` (`8080`) ya no publican su puerto al host: solo son alcanzables dentro de la red interna `transaction-network`, desde el contenedor `app`. Antes, cualquiera con acceso a la máquina podía conectarse directo a Postgres o a WireMock sin pasar por la API ni por el `X-API-Key`, lo cual anulaba cualquier control de acceso a nivel de aplicación. Solo `app` (puerto `8000`) sigue expuesto al host, que es el único punto de entrada que debe existir.
 ## PREREQUISITOS
 
 ## Prerrequisitos
@@ -238,7 +208,38 @@ curl -X POST http://localhost:8000/api/v1/transactions/ \
 
 docker compose start wiremock
 ```
+### Características del proyecto
 
+## Autenticación
+
+Todos los endpoints bajo `/api/v1/transactions` (`POST` y `GET`) requieren una API key estática enviada en el header `X-API-Key`. Se implementa como una dependencia de FastAPI (`app/core/security.py`) enganchada a nivel de router, así que no hay forma de llegar a los endpoints de transacciones sin el header correcto: sin key o con una key incorrecta, la API responde `401 Unauthorized`.
+
+El endpoint `GET /health` se deja intencionalmente **sin** autenticación: es el que consultaría un load balancer o un orquestador (healthcheck de Docker, probes de Kubernetes) para saber si el proceso sigue vivo, y esos sistemas no tienen forma de conocer la API key — protegerlo tumbaría el servicio por falsos positivos de "unhealthy".
+
+La comparación de la key contra el valor esperado usa `secrets.compare_digest()` en vez de `==`: es una comparación de tiempo constante, para que un atacante no pueda inferir la key midiendo cuánto tarda la respuesta ante distintos intentos (timing attack). El valor real vive en `.env` (no versionado) y se inyecta a la app vía `docker-compose.yml`.
+
+**Nota de alcance:** esta es una autenticación básica servicio-a-servicio, apropiada para el tamaño de este challenge. En un entorno productivo con múltiples clientes/roles, lo natural sería evolucionar a JWT (rotación de credenciales sin reiniciar el servicio, expiración, scopes por cliente); no se implementó aquí para no sobre-ingenierizar dado el alcance y tiempo disponibles.
+
+### Protección contra SQL injection
+
+Tanto el `POST` como el `GET` construyen sus queries con el lenguaje de expresiones de SQLAlchemy (`select(...).where(Transaction.account_id == filters["accountId"])` en `TransactionRepository.list_transactions`, y asignación de atributos ORM en `create`), nunca con concatenación de strings. Esto hace que cualquier valor de entrada se envíe como parámetro vinculado (bound parameter) a la base de datos, no como texto SQL interpretable.
+
+Se probó explícitamente enviando un payload de inyección como filtro:
+```bash
+curl -G "http://localhost:8000/api/v1/transactions/" \
+  --data-urlencode "accountId=x'; DROP TABLE transactions; --" \
+  -H "X-API-Key: <tu-api-key>" \
+  -w "\nHTTP %{http_code}\n"
+```
+El payload se compara como un valor literal de `account_id` (que no existe), sin ejecutar ningún SQL adicional — la tabla y los datos existentes no se ven afectados.
+
+## Endurecimiento de contenedores
+
+Docker por sí solo no es una capa de seguridad (aislamiento ≠ control de acceso); por defecto un contenedor corre como root y puede exponer más de lo necesario al host. Se aplicaron dos ajustes sobre la configuración inicial:
+
+**1. Usuario no-root con grupo dedicado (`Dockerfile`).** La imagen ya no corre `uvicorn` como `root`. Se crea un grupo `appgroup` con el mismo GID que el grupo del usuario del host dueño del código (para que los permisos de lectura/ejecución del volumen montado (`./app:/app`) apliquen correctamente sin necesidad de compartir un UID específico), y un usuario `appuser` cuyo grupo primario es ese `appgroup`. La app se ejecuta con `USER appuser` a partir de ese punto — si el proceso de la app fuera comprometido, el atacante no obtiene privilegios de root dentro del contenedor.
+
+**2. Puertos internos sin exponer al host (`docker-compose.yml`).** `postgres` (`5432`) y `wiremock` (`8080`) ya no publican su puerto al host: solo son alcanzables dentro de la red interna `transaction-network`, desde el contenedor `app`. Antes, cualquiera con acceso a la máquina podía conectarse directo a Postgres o a WireMock sin pasar por la API ni por el `X-API-Key`, lo cual anulaba cualquier control de acceso a nivel de aplicación. Solo `app` (puerto `8000`) sigue expuesto al host, que es el único punto de entrada que debe existir.
 ## Reglas de negocio implementadas
 
 Validadas en el servicio **antes** de llamar al proveedor externo (`app/models/schemas.py` y `app/services/transaction_service.py`):
