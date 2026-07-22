@@ -85,7 +85,21 @@ Docker por sí solo no es una capa de seguridad (aislamiento ≠ control de acce
 **1. Usuario no-root con grupo dedicado (`Dockerfile`).** La imagen ya no corre `uvicorn` como `root`. Se crea un grupo `appgroup` con el mismo GID que el grupo del usuario del host dueño del código (para que los permisos de lectura/ejecución del volumen montado (`./app:/app`) apliquen correctamente sin necesidad de compartir un UID específico), y un usuario `appuser` cuyo grupo primario es ese `appgroup`. La app se ejecuta con `USER appuser` a partir de ese punto — si el proceso de la app fuera comprometido, el atacante no obtiene privilegios de root dentro del contenedor.
 
 **2. Puertos internos sin exponer al host (`docker-compose.yml`).** `postgres` (`5432`) y `wiremock` (`8080`) ya no publican su puerto al host: solo son alcanzables dentro de la red interna `transaction-network`, desde el contenedor `app`. Antes, cualquiera con acceso a la máquina podía conectarse directo a Postgres o a WireMock sin pasar por la API ni por el `X-API-Key`, lo cual anulaba cualquier control de acceso a nivel de aplicación. Solo `app` (puerto `8000`) sigue expuesto al host, que es el único punto de entrada que debe existir.
+## PREREQUISITOS
 
+## Prerrequisitos
+**Sistema operativo**
+- De preferencia Linux o Mac, correr o desarrollar en windows siempre me da dolores de cabeza pero es posible, también podría ser WSL2, pero igualmente recomiendo las primeras dos opciones.
+
+**Obligatorios** (para levantar y usar el proyecto):
+- Docker y Docker Compose (v2, el que ya trae `docker compose` sin guion, si no, usas `docker-compose`)
+- `curl` (para probar los endpoints, como se muestra más abajo)
+
+**Opcionales:**
+- Git (para clonar el repositorio)
+- `jq` — solo si quieres que las respuestas del `GET /transactions` se impriman formateadas, una transacción por línea (ver sección "Probar los endpoints")
+- `openssl` — usado en el ejemplo para generar el valor de `API_KEY` (`openssl rand -hex 32`); cualquier otro generador de string aleatorio sirve igual
+- Python 3.11 + `pip` — solo si quieres correr los tests unitarios fuera de Docker (`pytest tests/unit`, no requieren base de datos ni contenedores)
 ## Cómo levantar el proyecto
 
 Requisitos: Docker y Docker Compose.
