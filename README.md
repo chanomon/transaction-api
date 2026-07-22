@@ -149,7 +149,7 @@ curl -X POST http://localhost:8000/api/v1/transactions/ \
 
 **Consultar transacciones (con filtros y paginación):**
 
-Cada respuesta es un arreglo JSON; se pipea a `jq -c '.[]'` para que cada transacción se imprima en su propia línea (requiere tener `jq` instalado):
+Cada respuesta es un arreglo JSON; se pipea a `jq -c '.[]'` para que cada transacción se imprima en su propia línea (requiere tener `jq` instalado), si no quieres usar jq, solo borra la última parte de los comandos, el pipe `| jq -c '.[]'` y ejecuta:
 ```bash
 # todas las transacciones (paginadas, default page=1, limit=20)
 curl -s "http://localhost:8000/api/v1/transactions/" -H "X-API-Key: <tu-api-key>" | jq -c '.[]'
@@ -189,7 +189,7 @@ curl -X POST http://localhost:8000/api/v1/transactions/ \
   -w "\nHTTP %{http_code}\n"
 ```
 
-Ejemplo de `503` (proveedor totalmente inalcanzable, primero se tumba `wiremock`):
+Ejemplo de `503` (proveedor totalmente inalcanzable, primero se tumba `wiremock` ):
 ```bash
 docker compose stop wiremock
 
@@ -205,7 +205,7 @@ curl -X POST http://localhost:8000/api/v1/transactions/ \
   }' \
   -w "\nHTTP %{http_code}\n"
 
-docker compose start wiremock
+docker compose start wiremock #para reiniciar el servicio wiremock
 ```
 ### Características del proyecto
 
