@@ -57,7 +57,6 @@ La separación en capas (API → Service → Repository/Client) busca que la ló
 
 ## PREREQUISITOS
 
-## Prerrequisitos
 **Sistema operativo**
 - De preferencia Linux o Mac, correr o desarrollar en windows siempre me da dolores de cabeza pero es posible, también podría ser WSL2, pero igualmente recomiendo las primeras dos opciones.
 
