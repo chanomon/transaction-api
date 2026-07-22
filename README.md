@@ -71,7 +71,7 @@ La separación en capas (API → Service → Repository/Client) busca que la ló
 - Python 3.11 + `pip` — solo si quieres correr los tests unitarios fuera de Docker (`pytest tests/unit`, no requieren base de datos ni contenedores)
 ## Cómo levantar el proyecto
 
-Requisitos: Docker y Docker Compose.
+**0. Clonar o descargar zip** del proyecto, clonar usando `git clone <URL del pryecto>` con HTTPS o SSH o también se puede usar el botón "Download ZIP", y luego hacer descomprimir con click derecho en GUI o en la terminal hacer: `unzip <nombre_del_archivo.zip>`. Luego en terminal hacer `cd /path/al/archivo/transaction-api`
 
 **1. Configurar variables de entorno.** El proyecto necesita un archivo `.env` en la raíz (no versionado en git). Copia el template y ajusta los valores:
 ```bash
